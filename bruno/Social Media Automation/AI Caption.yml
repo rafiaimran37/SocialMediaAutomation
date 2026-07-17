@@ -1,0 +1,21 @@
+info:
+  name: AI Caption
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://127.0.0.1:8000/ai/caption
+  body:
+    type: json
+    data: |-
+      {
+        "message": "Launching our new AI Startup"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

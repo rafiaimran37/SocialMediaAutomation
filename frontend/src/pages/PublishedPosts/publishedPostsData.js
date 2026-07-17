@@ -1,0 +1,120 @@
+import { CalendarDays, ChartColumnBig, Heart, MessageSquareText, Sparkles } from 'lucide-react'
+
+export const publishedPostsData = {
+  filters: {
+    dateRange: ['Last 30 Days', 'Last 90 Days', 'This Year'],
+    platform: ['All Platforms', 'LinkedIn', 'Instagram', 'Twitter / X', 'Facebook'],
+  },
+  summaryCards: [
+    {
+      id: 'published-count',
+      label: 'Published Posts',
+      value: '128',
+      icon: Sparkles,
+      toneClassName: 'bg-blue-50 text-blue-700',
+    },
+    {
+      id: 'likes-count',
+      label: 'Likes',
+      value: '16.2K',
+      icon: Heart,
+      toneClassName: 'bg-rose-50 text-rose-700',
+    },
+    {
+      id: 'comments-count',
+      label: 'Comments',
+      value: '1.4K',
+      icon: MessageSquareText,
+      toneClassName: 'bg-amber-50 text-amber-700',
+    },
+    {
+      id: 'shares-count',
+      label: 'Shares',
+      value: '892',
+      icon: ChartColumnBig,
+      toneClassName: 'bg-emerald-50 text-emerald-700',
+    },
+  ],
+  posts: [
+    {
+      id: 'post-1',
+      publishedLabel: 'Published 2h ago',
+      heroClassName: 'bg-[linear-gradient(135deg,rgba(186,230,253,0.95),rgba(15,118,110,0.2))]',
+      badge: 'LinkedIn',
+      excerpt:
+        'Excited to announce our latest breakthrough in generative AI! We\'ve integrated real-time data streams to make content planning faster and smarter.',
+      likes: '1.2k',
+      comments: '342',
+      shares: '89',
+      channelTone: 'bg-blue-50 text-blue-700',
+    },
+    {
+      id: 'post-2',
+      publishedLabel: 'Published Yesterday',
+      heroClassName: 'bg-[linear-gradient(135deg,rgba(17,24,39,0.95),rgba(59,130,246,0.22))]',
+      badge: 'Instagram',
+      excerpt:
+        'The future is here. See how AI can transform your visual storytelling on Instagram with our new smart-crop workflow.',
+      likes: '8.4k',
+      comments: '92',
+      shares: '156',
+      channelTone: 'bg-pink-50 text-pink-700',
+    },
+    {
+      id: 'post-3',
+      publishedLabel: '3 Days Ago',
+      heroClassName: 'bg-[linear-gradient(135deg,rgba(37,99,235,0.95),rgba(59,130,246,0.5))]',
+      badge: 'Twitter / X',
+      excerpt:
+        'Thought leadership does not have to be time-consuming. Lumina AI helps curate the best industry quotes and surface them at the right time.',
+      likes: '562',
+      comments: '18',
+      shares: '42',
+      channelTone: 'bg-slate-100 text-slate-700',
+    },
+    {
+      id: 'post-4',
+      publishedLabel: 'Oct 24, 2023',
+      heroClassName: 'bg-[linear-gradient(135deg,rgba(253,230,138,0.85),rgba(255,255,255,0.2))]',
+      badge: 'Facebook',
+      excerpt:
+        'How we helped our clients scale their social presence by pairing editorial workflows with automated publishing rules.',
+      likes: '734',
+      comments: '54',
+      shares: '27',
+      channelTone: 'bg-blue-50 text-blue-700',
+    },
+  ],
+  tableRows: [
+    {
+      id: 'row-1',
+      title: 'Generative AI launch post',
+      channel: 'LinkedIn',
+      publishedAt: '2 hours ago',
+      likes: '1.2k',
+      comments: '342',
+      shares: '89',
+      channelTone: 'bg-blue-50 text-blue-700',
+    },
+    {
+      id: 'row-2',
+      title: 'Visual storytelling teaser',
+      channel: 'Instagram',
+      publishedAt: 'Yesterday',
+      likes: '8.4k',
+      comments: '92',
+      shares: '156',
+      channelTone: 'bg-pink-50 text-pink-700',
+    },
+    {
+      id: 'row-3',
+      title: 'Thought leadership quote card',
+      channel: 'Twitter / X',
+      publishedAt: '3 days ago',
+      likes: '562',
+      comments: '18',
+      shares: '42',
+      channelTone: 'bg-slate-100 text-slate-700',
+    },
+  ],
+}
