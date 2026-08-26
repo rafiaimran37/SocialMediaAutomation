@@ -1,5 +1,5 @@
 function StatusBadge({ status, className = '' }) {
-  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${className}`.trim()}>{formatStatus(status)}</span>
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-[0.04em] ring-1 ring-inset ${className}`.trim()}>{formatStatus(status)}</span>
 }
 
 function formatStatus(status) {

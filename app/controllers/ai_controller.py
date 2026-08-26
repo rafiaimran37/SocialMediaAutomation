@@ -1,5 +1,8 @@
+from typing import List
+
 from fastapi import APIRouter
-from app.models.publish_request import PublishRequest
+from pydantic import BaseModel
+
 from app.services.ai_service import AIService
 
 router = APIRouter()
@@ -7,11 +10,25 @@ router = APIRouter()
 ai = AIService()
 
 
-@router.post("/ai/caption")
-def generate(request: PublishRequest):
+class AIGenerateRequest(BaseModel):
+    topic: str | None = ""
+    platform: str | None = ""
+    tone: str | None = ""
+    targetAudience: str | None = ""
+    keywords: List[str] = []
 
-    caption = ai.generate_caption(request.message)
+
+@router.post("/ai/generate")
+def generate(request: AIGenerateRequest):
+
+    caption = ai.generate_caption(
+        request.topic,
+        request.platform,
+        request.tone,
+        request.targetAudience,
+        request.keywords,
+    )
 
     return {
-        "caption": caption
+        "generatedCaption": caption
     }

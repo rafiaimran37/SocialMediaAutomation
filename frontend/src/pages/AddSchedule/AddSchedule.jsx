@@ -1,26 +1,45 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, Check, Clock3, Send, Sparkles } from 'lucide-react'
 import { addScheduleData } from './addScheduleData'
 import PlatformSelector from './components/PlatformSelector'
 import ToggleSwitch from './components/ToggleSwitch'
-import PreviewPanel from './components/PreviewPanel'
+// import PreviewPanel from './components/PreviewPanel'
+import { publishFacebookPost } from "../../services/facebookService";
+import { createScheduledPost } from "../../services/scheduledPostService";
+
 
 function AddSchedule() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [publishing, setPublishing] = useState(false)
+const [publishResult, setPublishResult] = useState(null)
+  const [mediaFile, setMediaFile] = useState(null)
   const [formState, setFormState] = useState({
     topic: '',
     caption: '',
-    platform: 'facebook',
+    platforms: [],
     scheduleDate: '',
     scheduleTime: '',
-    approvalRequired: true,
-  })
+    approvalRequired: false,
+})
 
-  const selectedPlatform = useMemo(
-    () => addScheduleData.platformOptions.find((platform) => platform.id === formState.platform),
-    [formState.platform],
-  )
+
+useEffect(() => {
+  const generatedPost = location.state?.generatedPost
+
+  if (generatedPost) {
+    setFormState((current) => ({
+      ...current,
+      topic: generatedPost,
+      caption: generatedPost,
+    }))
+  }
+}, [location.state])
+
+
+
+
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -30,11 +49,116 @@ function AddSchedule() {
     }))
   }
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    navigate('/schedule-posts')
+  const handleMediaChange = (event) => {
+    setMediaFile(event.target.files?.[0] ?? null)
   }
 
+  const handleSubmit = async (event) => {
+
+  event.preventDefault();
+
+
+  try {
+
+    const scheduleData = mediaFile
+      ? new FormData()
+      : {
+
+      platforms: formState.platforms,
+
+      message:
+      formState.caption || formState.topic,
+
+      scheduled_date:
+      formState.scheduleDate,
+
+      scheduled_time:
+      formState.scheduleTime,
+
+      approval_required:
+      formState.approvalRequired
+
+    };
+
+    if (mediaFile) {
+     formState.platforms.forEach((platform)=>{
+
+    scheduleData.append(
+        "platforms",
+        platform
+    )
+
+})
+      scheduleData.append('message', formState.caption || formState.topic)
+      scheduleData.append('scheduled_date', formState.scheduleDate)
+      scheduleData.append('scheduled_time', formState.scheduleTime)
+      scheduleData.append('approval_required', String(formState.approvalRequired))
+      scheduleData.append('media_file', mediaFile)
+    }
+
+
+    const response = await createScheduledPost(
+      scheduleData
+    );
+
+
+    console.log(
+      "Schedule Created:",
+      response
+    );
+
+
+    navigate('/schedule-posts');
+
+
+  }
+  catch(error){
+
+    console.log(
+      "Schedule Create Error:",
+      error
+    );
+
+  }
+
+}
+const handlePublish = async () => {
+
+  try {
+
+    setPublishing(true)
+
+
+    const data = await publishFacebookPost(
+      formState.caption || formState.topic
+    )
+
+
+    console.log(
+      "PUBLISH RESPONSE:",
+      data
+    )
+
+
+    setPublishResult(data)
+
+
+  }
+  catch(error){
+
+    console.log(
+      "Publish Error:",
+      error
+    )
+
+  }
+  finally{
+
+    setPublishing(false)
+
+  }
+
+}
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-slate-900">
       <section className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -56,14 +180,14 @@ function AddSchedule() {
             <Clock3 className="h-4 w-4" />
             Back to Queue
           </button>
-          <button
+          {/* <button
             type="submit"
             form="schedule-form"
             className="inline-flex h-14 items-center gap-3 rounded-2xl border border-blue-700 bg-blue-700 px-5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <Send className="h-4 w-4" />
             Save Schedule
-          </button>
+          </button> */}
         </div>
       </section>
 
@@ -85,7 +209,7 @@ function AddSchedule() {
               />
             </Field>
 
-            <Field
+            {/* <Field
               label="Caption"
               action={
                 <button type="button" className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100">
@@ -102,23 +226,28 @@ function AddSchedule() {
                 placeholder="Write your post content here..."
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               />
-            </Field>
+            </Field> */}
 
             <section>
               <div className="mb-3 flex items-center gap-3">
                 <h3 className="text-sm font-semibold text-slate-900">Platform Selection</h3>
               </div>
               <PlatformSelector
-                platforms={addScheduleData.platformOptions}
-                selectedPlatform={formState.platform}
-                onSelect={(platform) => setFormState((current) => ({ ...current, platform }))}
-              />
+ platforms={addScheduleData.platformOptions}
+ selectedPlatforms={formState.platforms}
+ onSelect={(platforms)=> 
+ setFormState((current)=>({
+ ...current,
+ platforms
+ }))
+ }
+/>
             </section>
 
             <section>
               <h3 className="mb-3 text-sm font-semibold text-slate-900">Upload Media</h3>
               <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center transition hover:border-blue-300 hover:bg-blue-50/60">
-                <input type="file" className="sr-only" />
+                <input type="file" accept="image/*,video/*" onChange={handleMediaChange} className="sr-only" />
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-blue-100 text-blue-700">
                   <CalendarDays className="h-6 w-6" />
                 </span>
@@ -155,12 +284,20 @@ function AddSchedule() {
             />
 
             <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-6">
-              <button type="button" className="rounded-2xl px-5 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+              {/* <button type="button" className="rounded-2xl px-5 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
                 Cancel
-              </button>
-              <button type="button" className="rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50">
+              </button> */}
+              <button
+  type="button"
+  onClick={handlePublish}
+  disabled={publishing}
+  className="rounded-2xl bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-green-700 disabled:opacity-50"
+>
+  {publishing ? "Publishing..." : "Publish Now"}
+</button>
+              {/* <button type="button" className="rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50">
                 Save Draft
-              </button>
+              </button> */}
               <button type="submit" className="rounded-2xl bg-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(37,99,235,0.28)] transition hover:brightness-105">
                 Schedule Post
               </button>
@@ -169,17 +306,8 @@ function AddSchedule() {
         </form>
 
         <aside className="grid gap-6">
-          <PreviewPanel previewPost={addScheduleData.previewPost} metrics={addScheduleData.previewMetrics} />
 
-          <section className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">Quick Summary</h2>
-            <div className="mt-4 grid gap-3">
-              <SummaryRow label="Platform" value={selectedPlatform?.label ?? 'Facebook'} />
-              <SummaryRow label="Approval" value={formState.approvalRequired ? 'Required' : 'Optional'} />
-              <SummaryRow label="Attachments" value="Ready to upload" />
-            </div>
-          </section>
-        </aside>
+</aside>
       </section>
     </div>
   )

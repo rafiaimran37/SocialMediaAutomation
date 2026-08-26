@@ -18,7 +18,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/schedule-posts" element={<SchedulePosts />} />
         <Route path="/add-schedule" element={<AddSchedule />} />

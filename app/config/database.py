@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from urllib.parse import quote_plus
 
@@ -29,6 +29,51 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+
+def ensure_media_columns():
+    inspector = inspect(engine)
+
+    required_columns = {
+        "ScheduledPosts": "MediaPath",
+        "ApprovalQueue": "MediaPath",
+    }
+
+    with engine.begin() as connection:
+        for table_name, column_name in required_columns.items():
+            existing_columns = {column["name"] for column in inspector.get_columns(table_name)} if inspector.has_table(table_name) else set()
+
+            if column_name not in existing_columns:
+                connection.execute(
+                    text(
+                        f"ALTER TABLE {table_name} ADD {column_name} NVARCHAR(255) NULL"
+                    )
+                )
+
+def ensure_clients_table():
+    with engine.begin() as connection:
+        connection.execute(
+            text("""
+                IF NOT EXISTS (
+                    SELECT *
+                    FROM sys.tables
+                    WHERE name = 'Clients'
+                )
+                BEGIN
+                    CREATE TABLE Clients (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        UserId INT NOT NULL,
+                        ClientName NVARCHAR(150) NOT NULL,
+                        Status NVARCHAR(50) DEFAULT 'Active',
+                        CreatedAt DATETIME2 DEFAULT GETDATE(),
+
+                        CONSTRAINT FK_Clients_Users
+                        FOREIGN KEY (UserId)
+                        REFERENCES Users(Id)
+                    )
+                END
+            """)
+        )
 
 
 def get_db():

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, Clock3, CircleAlert, Sparkles, UserRoundPen } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock3, Sparkles, UserRoundPen } from 'lucide-react'
 
 export const schedulePostsData = {
   stats: [
@@ -26,14 +26,14 @@ export const schedulePostsData = {
       icon: CheckCircle2,
       toneClassName: 'bg-emerald-50 text-emerald-700',
     },
-    {
-      id: 'needs-attention',
-      label: 'Needs Attention',
-      value: 5,
-      hint: 'Failures / retries',
-      icon: CircleAlert,
-      toneClassName: 'bg-rose-50 text-rose-700',
-    },
+    // {
+    //   id: 'needs-attention',
+    //   label: 'Needs Attention',
+    //   value: 5,
+    //   hint: 'Failures / retries',
+    //   icon: CircleAlert,
+    //   toneClassName: 'bg-rose-50 text-rose-700',
+    // },
   ],
   filters: [
     {
