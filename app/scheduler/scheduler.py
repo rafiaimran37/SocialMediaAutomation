@@ -4,11 +4,15 @@ from apscheduler.schedulers.background import (
 
 from datetime import datetime
 
+from sqlalchemy import func
+
 from concurrent.futures import (
     ThreadPoolExecutor
 )
 
-from app.config.database import SessionLocal
+from app.config.database import (
+    SessionLocal
+)
 
 from app.models.scheduled_post import (
     ScheduledPost
@@ -16,6 +20,14 @@ from app.models.scheduled_post import (
 
 from app.models.scheduled_post_client import (
     ScheduledPostClient
+)
+
+from app.models.post import (
+    Post
+)
+
+from app.models.post_status import (
+    PostStatus
 )
 
 from app.services.publish_service import (
@@ -26,18 +38,25 @@ from app.services.publish_service import (
 scheduler = BackgroundScheduler()
 
 
+# ==========================================================
+# PUBLISH SINGLE POST
+# ==========================================================
+
 def publish_single_post(
+
     post_id,
+
     client_id
+
 ):
 
     db = SessionLocal()
 
     try:
 
-        # ==========================================
-        # FETCH POST
-        # ==========================================
+        # ==================================================
+        # FETCH SCHEDULED POST
+        # ==================================================
 
         post = (
 
@@ -72,7 +91,7 @@ def publish_single_post(
         )
 
         print(
-            "Post ID:",
+            "Scheduled Post ID:",
             post.Id
         )
 
@@ -96,11 +115,73 @@ def publish_single_post(
             post.MediaPath
         )
 
-        # ==========================================
-        # PUBLISH
-        # ==========================================
+        # ==================================================
+        # FIND MASTER POST
+        # ==================================================
 
-        success = (
+        master_post = (
+
+            db.query(
+                Post
+            )
+
+            .filter(
+
+                Post.UserId
+                == post.UserId,
+
+                Post.Message
+                == post.Message
+
+            )
+
+            .order_by(
+                Post.Id.desc()
+            )
+
+            .first()
+
+        )
+
+        # ==================================================
+        # FIND POST STATUS
+        # ==================================================
+
+        post_status = None
+
+        if master_post:
+
+            post_status = (
+
+                db.query(
+                    PostStatus
+                )
+
+                .filter(
+
+                    PostStatus.PostId
+                    == master_post.Id,
+
+                    PostStatus.ClientId
+                    == client_id,
+
+                    func.lower(
+                        PostStatus.Platform
+                    )
+                    ==
+                    post.Platform.lower()
+
+                )
+
+                .first()
+
+            )
+
+        # ==================================================
+        # PUBLISH
+        # ==================================================
+
+        publish_result = (
 
             PublishService.publish_post(
 
@@ -120,29 +201,144 @@ def publish_single_post(
 
         )
 
+        # ==================================================
+        # DETERMINE SUCCESS
+        # ==================================================
+
+        if isinstance(
+            publish_result,
+            dict
+        ):
+
+            success = (
+                publish_result.get("status")
+                == "success"
+            )
+
+        else:
+
+            success = bool(
+                publish_result
+            )
+
+        # ==================================================
+        # SUCCESS
+        # ==================================================
+
         if success:
 
             print(
+
                 "Post Published Successfully:",
+
                 post.Id,
+
                 "Client:",
+
                 client_id
+
             )
+
+            # ----------------------------------------------
+            # UPDATE SCHEDULED POST
+            # ----------------------------------------------
 
             post.Status = "Published"
 
+            # ----------------------------------------------
+            # UPDATE POST STATUS
+            # ----------------------------------------------
+
+            if post_status:
+
+                post_status.Status = "Published"
+
+                post_status.PublishedAt = (
+                    datetime.now()
+                )
+
+                # Try to get platform post ID
+                if isinstance(
+                    publish_result,
+                    dict
+                ):
+
+                    post_status.PlatformPostId = (
+
+                        publish_result.get(
+                            "post_id"
+                        )
+
+                        or publish_result.get(
+                            "platform_post_id"
+                        )
+
+                    )
+
+                    post_status.ErrorMessage = None
+
             db.commit()
+
+        # ==================================================
+        # FAILED
+        # ==================================================
 
         else:
 
             print(
+
                 "Publishing Failed:",
+
                 post.Id,
+
                 "Client:",
+
                 client_id
+
             )
 
             post.Status = "Failed"
+
+            # ----------------------------------------------
+            # UPDATE POST STATUS
+            # ----------------------------------------------
+
+            if post_status:
+
+                post_status.Status = "Failed"
+
+                if isinstance(
+                    publish_result,
+                    dict
+                ):
+
+                    post_status.ErrorMessage = str(
+
+                        publish_result.get(
+                            "facebook_error"
+                        )
+
+                        or publish_result.get(
+                            "instagram_error"
+                        )
+
+                        or publish_result.get(
+                            "linkedin_error"
+                        )
+
+                        or publish_result.get(
+                            "message"
+                        )
+
+                        or "Publishing failed"
+
+                    )
+
+                else:
+
+                    post_status.ErrorMessage = (
+                        "Publishing failed"
+                    )
 
             db.commit()
 
@@ -160,6 +356,10 @@ def publish_single_post(
         db.close()
 
 
+# ==========================================================
+# CHECK SCHEDULED POSTS
+# ==========================================================
+
 def check_scheduled_posts():
 
     db = SessionLocal()
@@ -175,9 +375,9 @@ def check_scheduled_posts():
             current_time
         )
 
-        # ==========================================
+        # ==================================================
         # GET SCHEDULED POSTS
-        # ==========================================
+        # ==================================================
 
         posts = (
 
@@ -186,8 +386,10 @@ def check_scheduled_posts():
             )
 
             .filter(
+
                 ScheduledPost.Status
                 == "Scheduled"
+
             )
 
             .all()
@@ -197,30 +399,51 @@ def check_scheduled_posts():
         for post in posts:
 
             print(
+
                 "DEBUG POST:",
+
                 post.Id,
+
                 "| Platform:",
+
                 post.Platform,
+
                 "| Date:",
-                repr(post.ScheduledDate),
+
+                repr(
+                    post.ScheduledDate
+                ),
+
                 "| Time:",
-                repr(post.ScheduledTime),
+
+                repr(
+                    post.ScheduledTime
+                ),
+
                 "| Status:",
+
                 post.Status
+
             )
 
-            # ==========================================
+            # ==================================================
             # DATE / TIME CHECK
-            # ==========================================
+            # ==================================================
 
             try:
 
                 if (
+
                     post.ScheduledDate
-                    and post.ScheduledTime
+
+                    and
+
+                    post.ScheduledTime
+
                 ):
 
                     scheduled_datetime = (
+
                         datetime.strptime(
 
                             f"{post.ScheduledDate} "
@@ -229,18 +452,27 @@ def check_scheduled_posts():
                             "%Y-%m-%d %H:%M"
 
                         )
+
                     )
 
                     print(
+
                         "Scheduled datetime:",
+
                         scheduled_datetime,
+
                         "| Current datetime:",
+
                         current_time
+
                     )
 
                     if (
+
                         scheduled_datetime
-                        <= current_time
+                        <=
+                        current_time
+
                     ):
 
                         # ==================================
@@ -257,7 +489,8 @@ def check_scheduled_posts():
 
                                 ScheduledPostClient
                                 .ScheduledPostId
-                                == post.Id
+                                ==
+                                post.Id
 
                             )
 
@@ -270,8 +503,11 @@ def check_scheduled_posts():
                             ready_posts.append(
 
                                 (
+
                                     post.Id,
+
                                     link.ClientId
+
                                 )
 
                             )
@@ -279,27 +515,36 @@ def check_scheduled_posts():
             except Exception as error:
 
                 print(
+
                     "Date parsing error:",
+
                     error
+
                 )
 
         print(
+
             "Total scheduled posts:",
+
             len(posts)
+
         )
 
         print(
+
             "Posts ready for publishing:",
+
             len(ready_posts)
+
         )
 
     finally:
 
         db.close()
 
-    # ==========================================
+    # ==================================================
     # PARALLEL PUBLISHING
-    # ==========================================
+    # ==================================================
 
     if ready_posts:
 
@@ -308,15 +553,21 @@ def check_scheduled_posts():
         )
 
         with ThreadPoolExecutor(
+
             max_workers=5
+
         ) as executor:
 
             futures = [
 
                 executor.submit(
+
                     publish_single_post,
+
                     post_id,
+
                     client_id
+
                 )
 
                 for post_id, client_id
@@ -333,16 +584,23 @@ def check_scheduled_posts():
                 except Exception as error:
 
                     print(
+
                         "Worker error:",
+
                         error
+
                     )
 
 
+# ==========================================================
+# START SCHEDULER
+# ==========================================================
+
 def start_scheduler():
 
-    # ==========================================
+    # ==================================================
     # AVOID DUPLICATE JOB
-    # ==========================================
+    # ==================================================
 
     scheduler.add_job(
 
@@ -364,6 +622,10 @@ def start_scheduler():
         "Background Scheduler Started"
     )
 
+
+# ==========================================================
+# SHUTDOWN SCHEDULER
+# ==========================================================
 
 def shutdown_scheduler():
 

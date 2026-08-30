@@ -25,6 +25,11 @@ LINKEDIN_REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI")
 # Gemini AI Settings
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# OpenAI Settings
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+
 
 def _public_base_from_redirect_uri(redirect_uri: str | None):
 	if not redirect_uri:

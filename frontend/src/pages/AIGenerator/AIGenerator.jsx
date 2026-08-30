@@ -4,11 +4,11 @@ import {
   ArrowRight,
   CalendarDays,
   ChevronDown,
-  Clock3,
   RefreshCcw,
   Sparkles,
   Send,
   WandSparkles,
+  Clock3,
 } from 'lucide-react'
 
 import { buildApiUrl } from '../../services/api'
@@ -39,7 +39,6 @@ const initialFormState = {
   scheduleTime: '',
   approvalRequired: false,
 
-  // Store selection
   storeSelection: 'all',
   selectedStores: [],
 }
@@ -53,13 +52,20 @@ function AIGenerator() {
   const [topic, setTopic] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
 
-  const [keywords, setKeywords] = useState(
-    initialKeywords
-  )
+  const [keywords, setKeywords] =
+    useState(initialKeywords)
 
-  const [keywordInput, setKeywordInput] = useState('')
+  const [keywordInput, setKeywordInput] =
+    useState('')
 
   const [generatedCaption, setGeneratedCaption] =
+    useState('')
+
+  // ==================================================
+  // AI GENERATED IMAGE
+  // ==================================================
+
+  const [generatedImage, setGeneratedImage] =
     useState('')
 
   const [generating, setGenerating] =
@@ -68,6 +74,8 @@ function AIGenerator() {
   const [publishing, setPublishing] =
     useState(false)
 
+  // Existing manual media file.
+  // DO NOT REMOVE - manual upload flow stays same.
   const [mediaFile, setMediaFile] =
     useState(null)
 
@@ -75,17 +83,20 @@ function AIGenerator() {
     useState(initialFormState)
 
 
-  // Clients / Stores
+  // ==================================================
+  // CLIENTS / STORES
+  // ==================================================
 
-  const [clients, setClients] = useState([])
+  const [clients, setClients] =
+    useState([])
 
   const [loadingClients, setLoadingClients] =
     useState(true)
 
 
-  // --------------------------------------------------
+  // ==================================================
   // LOAD CLIENTS / STORES
-  // --------------------------------------------------
+  // ==================================================
 
   const loadClients = async () => {
 
@@ -124,9 +135,9 @@ function AIGenerator() {
   }, [])
 
 
-  // --------------------------------------------------
+  // ==================================================
   // KEYWORDS
-  // --------------------------------------------------
+  // ==================================================
 
   const addKeyword = (event) => {
 
@@ -173,9 +184,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // RESET
-  // --------------------------------------------------
+  // ==================================================
 
   const handleReset = () => {
 
@@ -193,6 +204,10 @@ function AIGenerator() {
 
     setGeneratedCaption('')
 
+    // Clear AI generated image
+    setGeneratedImage('')
+
+    // Keep existing manual media reset
     setMediaFile(null)
 
     setFormState(
@@ -202,9 +217,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // USE GENERATED POST
-  // --------------------------------------------------
+  // ==================================================
 
   const handleUseThisPost = () => {
 
@@ -215,6 +230,7 @@ function AIGenerator() {
     setFormState(
       (current) => ({
         ...current,
+
         caption:
           generatedCaption,
       })
@@ -223,9 +239,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // AI GENERATION
-  // --------------------------------------------------
+  // ==================================================
 
   const handleGenerateContent =
     async () => {
@@ -248,7 +264,7 @@ function AIGenerator() {
               body: JSON.stringify({
                 topic,
 
-                // Keep current backend flow working for now.
+                // Existing backend flow
                 platform: 'LinkedIn',
 
                 tone,
@@ -274,6 +290,10 @@ function AIGenerator() {
           await response.json()
 
 
+        // ==================================================
+        // GENERATED CAPTION
+        // ==================================================
+
         const generated =
           data.generatedCaption ?? ''
 
@@ -282,6 +302,23 @@ function AIGenerator() {
           generated
         )
 
+
+        // ==================================================
+        // GENERATED IMAGE
+        // ==================================================
+
+        const generatedImageData =
+          data.generatedImage ?? ''
+
+
+        setGeneratedImage(
+          generatedImageData
+        )
+
+
+        // ==================================================
+        // PUT CAPTION INTO SCHEDULER
+        // ==================================================
 
         if (generated) {
 
@@ -312,9 +349,9 @@ function AIGenerator() {
     }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // FORM CHANGE
-  // --------------------------------------------------
+  // ==================================================
 
   const handleChange = (
     event
@@ -342,10 +379,12 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
-  // MEDIA
-  // --------------------------------------------------
+  // ==================================================
+  // MANUAL MEDIA
+  // ==================================================
 
+  // Existing manual upload flow.
+  // DO NOT CHANGE.
   const handleMediaChange = (
     event
   ) => {
@@ -358,9 +397,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // STORE SELECTION
-  // --------------------------------------------------
+  // ==================================================
 
   const handleStoreSelectionChange =
     (selection) => {
@@ -405,9 +444,165 @@ function AIGenerator() {
     }
 
 
-  // --------------------------------------------------
+  // ==================================================
+  // AI IMAGE → FILE
+  // ==================================================
+  //
+  // Converts the base64 image returned by the AI
+  // into a browser File object.
+  //
+  // This allows us to reuse the EXISTING backend:
+  //
+  // media_file
+  //     ↓
+  // save_media_file()
+  //     ↓
+  // MediaPath
+  //
+  // Manual uploads are completely unaffected.
+  // ==================================================
+
+  const convertGeneratedImageToFile = () => {
+
+    if (!generatedImage) {
+      return null
+    }
+
+    try {
+
+      let base64Data =
+        generatedImage
+
+      let mimeType =
+        'image/png'
+
+
+      // ------------------------------------------------
+      // Support data URL format too.
+      //
+      // Example:
+      // data:image/png;base64,AAAA...
+      // ------------------------------------------------
+
+      if (
+        generatedImage.startsWith(
+          'data:'
+        )
+      ) {
+
+        const parts =
+          generatedImage.split(',')
+
+        const header =
+          parts[0]
+
+        base64Data =
+          parts[1]
+
+        const mimeMatch =
+          header.match(
+            /data:(.*?);base64/
+          )
+
+        if (mimeMatch?.[1]) {
+
+          mimeType =
+            mimeMatch[1]
+
+        }
+
+      }
+
+
+      // ------------------------------------------------
+      // Base64 → binary
+      // ------------------------------------------------
+
+      const byteCharacters =
+        window.atob(
+          base64Data
+        )
+
+      const byteArrays = []
+
+      const chunkSize = 1024
+
+
+      for (
+        let offset = 0;
+        offset < byteCharacters.length;
+        offset += chunkSize
+      ) {
+
+        const slice =
+          byteCharacters.slice(
+            offset,
+            offset + chunkSize
+          )
+
+        const byteNumbers =
+          new Array(
+            slice.length
+          )
+
+
+        for (
+          let index = 0;
+          index < slice.length;
+          index++
+        ) {
+
+          byteNumbers[index] =
+            slice.charCodeAt(index)
+
+        }
+
+
+        byteArrays.push(
+          new Uint8Array(
+            byteNumbers
+          )
+        )
+
+      }
+
+
+      const blob =
+        new Blob(
+          byteArrays,
+          {
+            type: mimeType,
+          }
+        )
+
+
+      return new File(
+        [
+          blob,
+        ],
+        `ai-generated-${Date.now()}.png`,
+        {
+          type: mimeType,
+        }
+      )
+
+    } catch (error) {
+
+      console.log(
+        'AI Image Conversion Error:',
+        error
+      )
+
+      return null
+
+    }
+
+  }
+
+
+  // ==================================================
   // SUBMIT / SCHEDULE
-  // --------------------------------------------------
+  // ==================================================
 
   const handleSubmit = async (
     event
@@ -418,9 +613,9 @@ function AIGenerator() {
 
     try {
 
-      // ==========================================
+      // ==============================================
       // GET CLIENT IDS
-      // ==========================================
+      // ==============================================
 
       const clientIds =
         formState.storeSelection === 'all'
@@ -448,9 +643,9 @@ function AIGenerator() {
               )
 
 
-      // ==========================================
+      // ==============================================
       // VALIDATE STORES
-      // ==========================================
+      // ==============================================
 
       if (clientIds.length === 0) {
 
@@ -463,9 +658,9 @@ function AIGenerator() {
       }
 
 
-      // ==========================================
+      // ==============================================
       // VALIDATE PLATFORMS
-      // ==========================================
+      // ==============================================
 
       if (
         formState.platforms.length === 0
@@ -480,48 +675,78 @@ function AIGenerator() {
       }
 
 
-      // ==========================================
+      // ==============================================
+      // IMPORTANT:
+      //
+      // If manual media exists, keep using it.
+      //
+      // Otherwise, if AI image exists, convert the
+      // AI image into a File and use the SAME
+      // media_file backend flow.
+      //
+      // If neither exists, keep the existing JSON flow.
+      // ==============================================
+
+      let mediaToSchedule =
+        mediaFile
+
+
+      if (
+        !mediaToSchedule &&
+        generatedImage
+      ) {
+
+        mediaToSchedule =
+          convertGeneratedImageToFile()
+
+      }
+
+
+      // ==============================================
       // CREATE REQUEST DATA
-      // ==========================================
+      // ==============================================
 
-      const scheduleData = mediaFile
+      const scheduleData =
+        mediaToSchedule
 
-        ? new FormData()
+          ? new FormData()
 
-        : {
+          : {
 
-            platforms:
-              formState.platforms,
+              platforms:
+                formState.platforms,
 
-            message:
-              formState.caption ||
-              formState.topic,
+              message:
+                formState.caption ||
+                formState.topic,
 
-            scheduled_date:
-              formState.scheduleDate,
+              scheduled_date:
+                formState.scheduleDate,
 
-            scheduled_time:
-              formState.scheduleTime,
+              scheduled_time:
+                formState.scheduleTime,
 
-            approval_required:
-              formState.approvalRequired,
+              approval_required:
+                formState.approvalRequired,
 
-            store_selection:
-              formState.storeSelection,
+              store_selection:
+                formState.storeSelection,
 
-            client_ids:
-              clientIds,
+              client_ids:
+                clientIds,
 
-          }
+            }
 
 
-      // ==========================================
+      // ==============================================
       // MEDIA REQUEST
-      // ==========================================
+      // ==============================================
 
-      if (mediaFile) {
+      if (mediaToSchedule) {
 
+        // --------------------------------------------
         // Platforms
+        // --------------------------------------------
 
         formState.platforms.forEach(
           (platform) => {
@@ -535,7 +760,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Message
+        // --------------------------------------------
 
         scheduleData.append(
           'message',
@@ -544,7 +771,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Date
+        // --------------------------------------------
 
         scheduleData.append(
           'scheduled_date',
@@ -552,7 +781,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Time
+        // --------------------------------------------
 
         scheduleData.append(
           'scheduled_time',
@@ -560,7 +791,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Approval
+        // --------------------------------------------
 
         scheduleData.append(
           'approval_required',
@@ -570,7 +803,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Store selection
+        // --------------------------------------------
 
         scheduleData.append(
           'store_selection',
@@ -578,7 +813,9 @@ function AIGenerator() {
         )
 
 
+        // --------------------------------------------
         // Client IDs
+        // --------------------------------------------
 
         clientIds.forEach(
           (clientId) => {
@@ -592,19 +829,27 @@ function AIGenerator() {
         )
 
 
-        // Media
+        // --------------------------------------------
+        // MEDIA
+        //
+        // IMPORTANT:
+        //
+        // This is still called media_file.
+        // Therefore the existing backend upload
+        // pipeline remains unchanged.
+        // --------------------------------------------
 
         scheduleData.append(
           'media_file',
-          mediaFile
+          mediaToSchedule
         )
 
       }
 
 
-      // ==========================================
+      // ==============================================
       // DEBUG
-      // ==========================================
+      // ==============================================
 
       console.log(
         'Store Selection:',
@@ -622,14 +867,29 @@ function AIGenerator() {
       )
 
       console.log(
+        'Manual Media:',
+        mediaFile
+      )
+
+      console.log(
+        'AI Image Available:',
+        Boolean(generatedImage)
+      )
+
+      console.log(
+        'Media Being Scheduled:',
+        mediaToSchedule
+      )
+
+      console.log(
         'Schedule Data:',
         scheduleData
       )
 
 
-      // ==========================================
+      // ==============================================
       // CREATE SCHEDULED POST
-      // ==========================================
+      // ==============================================
 
       const response =
         await createScheduledPost(
@@ -643,9 +903,9 @@ function AIGenerator() {
       )
 
 
-      // ==========================================
+      // ==============================================
       // REDIRECT
-      // ==========================================
+      // ==============================================
 
       navigate(
         '/schedule-posts'
@@ -664,9 +924,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // PUBLISH NOW
-  // --------------------------------------------------
+  // ==================================================
 
   const handlePublish = async () => {
 
@@ -702,9 +962,9 @@ function AIGenerator() {
   }
 
 
-  // --------------------------------------------------
+  // ==================================================
   // UI
-  // --------------------------------------------------
+  // ==================================================
 
   return (
 
@@ -1028,12 +1288,39 @@ function AIGenerator() {
 
               <div className="flex w-full flex-col gap-4 text-left">
 
+                {/* AI GENERATED IMAGE */}
+
+                {generatedImage && (
+
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+                    <img
+                      src={
+                        generatedImage.startsWith(
+                          'data:'
+                        )
+                          ? generatedImage
+                          : `data:image/png;base64,${generatedImage}`
+                      }
+                      alt="AI generated social media"
+                      className="h-auto max-h-[420px] w-full object-cover"
+                    />
+
+                  </div>
+
+                )}
+
+
+                {/* AI GENERATED CAPTION */}
+
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-700 shadow-sm">
 
                   {generatedCaption}
 
                 </div>
 
+
+                {/* USE THIS POST */}
 
                 <button
                   type="button"
@@ -1450,6 +1737,19 @@ function AIGenerator() {
 
                 )}
 
+                {/* Show AI image status */}
+
+                {!mediaFile &&
+                  generatedImage && (
+
+                    <span className="mt-2 text-xs font-medium text-emerald-600">
+
+                      AI generated image will be scheduled automatically.
+
+                    </span>
+
+                  )}
+
               </label>
 
             </section>
@@ -1487,7 +1787,7 @@ function AIGenerator() {
                   onChange={
                     handleChange
                   }
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                 />
 
               </Field>
@@ -1566,9 +1866,9 @@ function AIGenerator() {
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // FIELD COMPONENT
-// --------------------------------------------------
+// ==================================================
 
 function Field({
   label,
